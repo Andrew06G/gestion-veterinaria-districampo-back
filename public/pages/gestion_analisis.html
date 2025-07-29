@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Análisis</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script> <!-- Biblioteca jsPDF -->
+</head>
+<body style="background-color: #b3b3b3;">
+  <!-- Barra de navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">
+      
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/animals">Animales</a></li>
+        <li class="nav-item"><a class="nav-link" href="/solicitar-analisis">Solicitar Análisis</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/gestion-analisis">Gestión de Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Cerrar Sesión</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container mt-5">
+    <h2 class="text-center">Gestión de Análisis Clínicos</h2>
+
+    <!-- Nuevo formulario para consultar análisis -->
+    <div class="mt-4">
+      <h4>Consultar Análisis por Animal</h4>
+      <form id="consultAnalysisForm" class="mb-4">
+        <div class="form-group">
+          <label for="id_animal">ID del Animal:</label>
+          <input type="number" id="id_animal" name="id_animal" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label for="id_tipo_analisis">Tipo de Análisis:</label>
+          <select id="id_tipo_analisis" name="id_tipo_analisis" class="form-control" disabled>
+            <!-- Este select se llenará dinámicamente con los análisis del animal -->
+          </select>
+        </div>
+        <button type="button" id="consultAnalysisButton" class="btn btn-primary">Consultar Análisis</button>
+      </form>
+    </div>
+
+    <!-- Tabla dinámica de análisis -->
+    <div class="mt-4">
+      <h4>Tabla de Análisis</h4>
+      <table id="analysisTable" class="table table-bordered">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Animal</th>
+            <th>Tipo de Análisis</th>
+            <th>Resultado</th>
+            <th>Fecha de Emisión</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Contenido generado dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Verificar si el usuario ha iniciado sesión al cargar la página
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!localStorage.getItem('token')) {
+        alert('Por favor, inicie sesión para acceder a la Gestión de Análisis.');
+        window.location.replace('/login'); // Redirigir al formulario de inicio de sesión
+        return;
+      }
+
+      // Continuar cargando las funcionalidades solo si el usuario está autenticado
+      loadAnalysisPage(); 
+    });
+
+    function loadAnalysisPage() {
+      let selectedAnalysisId;
+
+      // Consultar análisis por ID de Animal
+      document.getElementById('consultAnalysisButton').addEventListener('click', async function () {
+        const idAnimal = document.getElementById('id_animal').value.trim();
+
+        if (!idAnimal) {
+          alert('Por favor, ingrese un ID de animal válido.');
+          return;
+        }
+
+        // Obtener los análisis asociados al animal
+        try {
+          const response = await fetch(`http://localhost:3001/api/analyses/animal/${idAnimal}`);
+          if (response.ok) {
+            const analyses = await response.json();
+            const tableBody = document.querySelector('#analysisTable tbody');
+            tableBody.innerHTML = '';
+
+            if (analyses.length === 0) {
+              alert('No se encontraron análisis para este animal.');
+              return;
+            }
+
+            analyses.forEach(analysis => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${analysis.id_muestra}</td>
+                <td>${analysis.animal_nombre}</td>
+                <td>${analysis.tipo_analisis}</td>
+                <td>${analysis.resultado}</td>
+                <td>${analysis.fecha_emision}</td>
+                <td>${analysis.estado}</td>
+                <td>
+                  <button class="btn btn-danger btn-sm deleteButton" data-id="${analysis.id_muestra}">
+                    🗑️
+                  </button>
+                  <button class="btn btn-info btn-sm generatePDFButton" data-id="${analysis.id_muestra}">
+                    📄 Generar PDF
+                  </button>
+                </td>
+              `;
+              tableBody.appendChild(row);
+            });
+
+            // Llenar el selector de tipos de análisis del animal
+            const tipoAnalisisSelect = document.getElementById('id_tipo_analisis');
+            tipoAnalisisSelect.innerHTML = '';
+            analyses.forEach(analysis => {
+              const option = document.createElement('option');
+              option.value = analysis.id_tipo_analisis;
+              option.textContent = analysis.tipo_analisis;
+              tipoAnalisisSelect.appendChild(option);
+            });
+            tipoAnalisisSelect.disabled = false;
+
+            // Agregar event listeners a los botones de eliminar
+            document.querySelectorAll('.deleteButton').forEach(button => {
+              button.addEventListener('click', async function () {
+                const idMuestra = this.getAttribute('data-id');
+                await deleteAnalysis(idMuestra);
+              });
+            });
+
+            // Agregar event listeners a los botones de generar PDF
+            document.querySelectorAll('.generatePDFButton').forEach(button => {
+              button.addEventListener('click', async function () {
+                const idMuestra = this.getAttribute('data-id');
+                await generatePDF(idMuestra);
+              });
+            });
+
+          } else {
+            alert('Error al obtener los análisis.');
+          }
+        } catch (error) {
+          console.error('Error al obtener los análisis:', error);
+          alert('Error al obtener los análisis.');
+        }
+      });
+
+      // Función para eliminar un análisis
+      async function deleteAnalysis(idMuestra) {
+        if (!confirm('¿Estás seguro de que deseas eliminar este análisis?')) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`http://localhost:3001/api/analyses/${idMuestra}`, {
+            method: 'DELETE',
+          });
+
+          if (response.ok) {
+            alert('Análisis eliminado exitosamente.');
+            document.getElementById('consultAnalysisButton').click(); // Recargar la tabla
+          } else {
+            alert('Error al eliminar el análisis.');
+          }
+        } catch (error) {
+          console.error('Error al eliminar el análisis:', error);
+        }
+      }
+
+      // Función para generar el PDF del análisis seleccionado
+      async function generatePDF(idMuestra) {
+        try {
+          const response = await fetch(`http://localhost:3001/api/analyses/${idMuestra}/pdf`);
+          if (response.ok) {
+            const analysis = await response.json();
+
+            // Crear el PDF con jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("Resultados del Análisis - Veterilab", 20, 20);
+            doc.addImage("../images/VETERILAB.png", "PNG", 150, 10, 40, 20);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(12);
+            doc.text(`ID del Animal: ${analysis.id_animal}`, 20, 50);
+            doc.text(`Nombre del Animal: ${analysis.nombre_animal}`, 20, 60);
+            doc.text(`Fecha de Toma de Muestra: ${analysis.fecha_toma}`, 20, 70);
+            doc.text(`Tipo de Análisis: ${analysis.nombre_analisis}`, 20, 80);
+            doc.text(`Resultado: ${analysis.resultado}`, 20, 90);
+            doc.text(`Fecha de Emisión: ${analysis.fecha_emision}`, 20, 100);
+            doc.text(`Estado: ${analysis.estado}`, 20, 110);
+
+            // Descargar el PDF
+            doc.save(`Resultado_Analisis_${analysis.id_animal}.pdf`);
+          } else {
+            alert('Error al obtener los datos del análisis.');
+          }
+        } catch (error) {
+          console.error('Error al generar el PDF:', error);
+          alert('Error al generar el PDF.');
+        }
+      }
+    }
+
+    // Cerrar sesión
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+  </script>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Usuario - Veterilab</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body style="background-color: #b3b3b3;">
+  <!-- Barra de navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">
+      
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/animals">Animales</a></li>
+        <li class="nav-item"><a class="nav-link" href="/solicitar-analisis">Solicitar Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="/gestion-analisis">Gestión de Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Cerrar Sesión</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container mt-5">
+    <div class="text-center mb-4">
+     
+    </div>
+    <h2 class="text-center">Registro de Usuario</h2>
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="nombres">Nombres:</label>
+        <input type="text" class="form-control" id="nombres" name="nombres" required>
+      </div>
+      <div class="form-group">
+        <label for="apellidos">Apellidos:</label>
+        <input type="text" class="form-control" id="apellidos" name="apellidos" required>
+      </div>
+      <div class="form-group">
+        <label for="correo_electronico">Correo Electrónico:</label>
+        <input type="email" class="form-control" id="correo_electronico" name="correo_electronico" required>
+      </div>
+      <div class="form-group">
+        <label for="telefono">Teléfono:</label>
+        <input type="tel" class="form-control" id="telefono" name="telefono" required pattern="\d{7,15}">
+      </div>
+      <div class="form-group">
+        <label for="direccion">Dirección:</label>
+        <input type="text" class="form-control" id="direccion" name="direccion" required>
+      </div>
+      <div class="form-group">
+        <label for="contrasena">Contraseña:</label>
+        <input type="password" class="form-control" id="contrasena" name="contrasena" required minlength="8">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Registrarse</button>
+    </form>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/script.js"></script>
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const nombres = document.getElementById('nombres').value.trim();
+      const apellidos = document.getElementById('apellidos').value.trim();
+      const correo_electronico = document.getElementById('correo_electronico').value.trim();
+      const telefono = document.getElementById('telefono').value.trim();
+      const direccion = document.getElementById('direccion').value.trim();
+      const contrasena = document.getElementById('contrasena').value.trim();
+
+      if (!nombres || !apellidos || !correo_electronico || !telefono || !direccion || !contrasena) {
+        alert('Por favor, complete todos los campos.');
+        return;
+      }
+
+      if (contrasena.length < 8) {
+        alert('La contraseña debe tener al menos 8 caracteres.');
+        return;
+      }
+
+      // Realizar la solicitud al backend con el puerto corregido
+      fetch('http://localhost:3001/api/users/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nombres,
+          apellidos,
+          correo_electronico,
+          telefono,
+          direccion,
+          contrasena
+        })
+      })
+      .then(response => {
+        if (response.ok) {
+          alert('Usuario registrado exitosamente');
+          document.getElementById('registerForm').reset();
+        } else {
+          return response.text().then(text => {
+            alert('Error: ' + text);
+          });
+        }
+      })
+      .catch(err => {
+        alert('Error al registrar el usuario. Intente nuevamente.');
+        console.error('Error:', err);
+      });
+    });
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+  </script>
+</body>
+</html>

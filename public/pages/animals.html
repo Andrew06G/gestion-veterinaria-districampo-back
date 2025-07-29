@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Animales - Veterilab</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body style="background-color: #b3b3b3;">
+  <!-- Barra de navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">
+      
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Home</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/animals">Animales</a></li>
+        <li class="nav-item"><a class="nav-link" href="/solicitar-analisis">Solicitar Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="/gestion-analisis">Gestión de Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Cerrar Sesión</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container mt-5">
+    <div class="text-center mb-4">
+      
+    </div>
+    <h2 class="text-center">Registro de Animal</h2>
+    <form id="animalForm">
+      <div class="form-group">
+        <label for="id_propietario">ID del Propietario:</label>
+        <input type="number" class="form-control" id="id_propietario" required>
+      </div>
+      <div class="form-group">
+        <label for="nombre_animal">Nombre del Animal:</label>
+        <input type="text" class="form-control" id="nombre_animal" required>
+      </div>
+      <div class="form-group">
+        <label for="edad">Edad:</label>
+        <input type="number" class="form-control" id="edad" required>
+      </div>
+      <div class="form-group">
+        <label for="id_raza">ID de la Raza:</label>
+        <input type="number" class="form-control" id="id_raza" required>
+      </div>
+      <div class="form-group">
+        <label for="id_especie">ID de la Especie:</label>
+        <input type="number" class="form-control" id="id_especie" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Registrar Animal</button>
+    </form>
+
+    <!-- Sección para mostrar animales registrados -->
+    <div class="mt-5">
+      <h3 class="text-center">Animales Registrados</h3>
+      <div id="animalesList" class="row">
+        <!-- Los animales se cargarán aquí dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Verificar si el usuario ha iniciado sesión
+    document.addEventListener('DOMContentLoaded', () => {
+      // Si no hay token, redirigir al login
+      if (!localStorage.getItem('token')) {
+        alert('Por favor, inicie sesión para acceder a esta página.');
+        window.location.href = '/login';
+        return;
+      }
+
+      // Cargar lista de animales
+      cargarAnimales();
+
+      // Lógica de manejo del formulario para registrar un animal
+      const animalForm = document.getElementById('animalForm');
+
+      if (animalForm) {
+        animalForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+
+          // Obtener valores de los campos
+          const id_propietario = document.getElementById('id_propietario').value.trim();
+          const nombre_animal = document.getElementById('nombre_animal').value.trim();
+          const edad = document.getElementById('edad').value.trim();
+          const id_raza = document.getElementById('id_raza').value.trim();
+          const id_especie = document.getElementById('id_especie').value.trim();
+
+          // Validar que los campos no están vacíos
+          if (id_propietario === "" || nombre_animal === "" || edad === "" || id_raza === "" || id_especie === "") {
+            alert('Por favor, ingrese todos los datos requeridos del animal.');
+            return;
+          }
+
+          // Verificar si los valores numéricos son válidos
+          if (isNaN(edad) || isNaN(id_propietario) || isNaN(id_raza) || isNaN(id_especie) || 
+              edad <= 0 || id_propietario <= 0 || id_raza <= 0 || id_especie <= 0) {
+            alert('Por favor, ingrese valores válidos para todos los campos numéricos.');
+            return;
+          }
+
+          try {
+            const response = await fetch('http://localhost:3001/api/animals/register', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                id_propietario: id_propietario,
+                nombre_animal: nombre_animal,
+                edad: edad,
+                id_raza: id_raza,
+                id_especie: id_especie
+              })
+            });
+
+            if (response.ok) {
+              alert('Animal registrado exitosamente');
+              animalForm.reset(); // Limpiar el formulario después del registro exitoso
+              cargarAnimales(); // Recargar la lista de animales
+            } else {
+              const errorText = await response.text();
+              console.error('Error en la respuesta:', errorText);
+              alert('Error: ' + errorText);
+            }
+          } catch (error) {
+            console.error('Error al registrar el animal:', error);
+            alert('Error al registrar el animal');
+          }
+        });
+      }
+    });
+
+    // Función para cargar la lista de animales
+    async function cargarAnimales() {
+      try {
+        const response = await fetch('http://localhost:3001/api/animals', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        if (response.ok) {
+          const animales = await response.json();
+          const animalesList = document.getElementById('animalesList');
+          
+          if (animales.length === 0) {
+            animalesList.innerHTML = '<div class="col-12 text-center"><p>No hay animales registrados</p></div>';
+            return;
+          }
+
+          animalesList.innerHTML = animales.map(animal => `
+            <div class="col-md-4 mb-3">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">${animal.nombre_animal}</h5>
+                  <p class="card-text">
+                    <strong>Edad:</strong> ${animal.edad} años<br>
+                    <strong>Raza:</strong> ${animal.nombre_raza}<br>
+                    <strong>Especie:</strong> ${animal.nombre_especie}<br>
+                    <strong>Propietario:</strong> ${animal.propietario_nombres} ${animal.propietario_apellidos}
+                  </p>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          console.error('Error al cargar animales');
+        }
+      } catch (error) {
+        console.error('Error al cargar animales:', error);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+  </script>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

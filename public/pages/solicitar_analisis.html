@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitar Análisis</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body style="background-color: #b3b3b3;">
+  <!-- Barra de navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">
+      
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/animals">Animales</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/solicitar-analisis">Solicitar Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="/gestion-analisis">Gestión de Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Cerrar Sesión</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container mt-5">
+    <h2 class="text-center">Solicitar Análisis Clínico</h2>
+
+    <!-- Primer formulario -->
+    <form id="requestAnalysisForm" class="mb-4">
+      <div class="form-group">
+        <label for="id_animal">ID del Animal:</label>
+        <input type="number" class="form-control" id="id_animal" name="id_animal" required>
+      </div>
+      <div class="form-group">
+        <label for="tipo_analisis">Tipo de Análisis:</label>
+        <select class="form-control" id="tipo_analisis" name="id_tipo_analisis" required>
+          <!-- Opciones dinámicas -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="fecha_solicitud">Fecha de Solicitud:</label>
+        <input type="date" class="form-control" id="fecha_solicitud" name="fecha_solicitud" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Solicitar Análisis</button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Si no hay token, redirigir al login inmediatamente
+      if (!localStorage.getItem('token')) {
+        alert('Por favor, inicie sesión para acceder a esta página.');
+        window.location.replace('/login');
+      } else {
+        // Cargar los tipos de análisis solo si está autenticado
+        loadAnalysisTypes();
+      }
+    });
+
+    // Cargar tipos de análisis desde el backend
+    async function loadAnalysisTypes() {
+      try {
+        const response = await fetch('http://localhost:3001/api/tipo_analisis', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        if (response.ok) {
+          const analyses = await response.json();
+
+          // IDs de los selectores a llenar
+          const analysisSelectIds = ['tipo_analisis', 'id_tipo_analisis_alt', 'analysisType'];
+
+          analysisSelectIds.forEach(id => {
+            const select = document.getElementById(id);
+            if (select) {
+              select.innerHTML = ''; // Vaciar opciones previas
+
+              analyses.forEach(analysis => {
+                const option = document.createElement('option');
+                option.value = analysis.id_tipo_analisis;
+                option.textContent = analysis.nombre_analisis;
+                select.appendChild(option);
+              });
+            }
+          });
+        } else {
+          alert('Error al cargar los tipos de análisis.');
+        }
+      } catch (error) {
+        console.error('Error al cargar los tipos de análisis:', error);
+      }
+    }
+
+    // Manejar envío de formularios para solicitar un análisis
+    document.getElementById('requestAnalysisForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      // Obtener valores del formulario
+      const id_animal = document.getElementById('id_animal').value.trim();
+      const id_tipo_analisis = document.getElementById('tipo_analisis').value;
+      const fecha_solicitud = document.getElementById('fecha_solicitud').value;
+
+      // Validar campos
+      if (!id_animal || !id_tipo_analisis || !fecha_solicitud) {
+        alert('Por favor, complete todos los campos.');
+        return;
+      }
+
+      // Enviar la solicitud al backend
+      try {
+        const response = await fetch('http://localhost:3001/api/analyses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            id_animal: id_animal,
+            id_tipo_analisis: id_tipo_analisis,
+            fecha_solicitud: fecha_solicitud
+          })
+        });
+
+        if (response.ok) {
+          alert('Análisis solicitado exitosamente');
+          this.reset(); // Limpiar el formulario
+        } else {
+          const errorText = await response.text();
+          alert('Error al solicitar el análisis: ' + errorText);
+        }
+      } catch (error) {
+        console.error('Error al solicitar el análisis:', error);
+        alert('Error al solicitar el análisis');
+      }
+    });
+
+    // Cerrar sesión
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+  </script>
+
+</body>
+</html>

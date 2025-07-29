@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Veterilab</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Importación de la fuente Roboto -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Archivo de estilos personalizado -->
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!-- Barra de navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">
+     
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/animals">Animales</a></li>
+        <li class="nav-item"><a class="nav-link" href="/solicitar-analisis">Solicitar Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="/gestion-analisis">Gestión de Análisis</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Cerrar Sesión</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container mt-5">
+    <div class="text-center mb-4">
+     
+    </div>
+    <h2 class="text-center">Iniciar Sesión</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="correoElectronico">Correo Electrónico:</label>
+        <input type="email" class="form-control" id="correoElectronico" name="correoElectronico" required>
+      </div>
+      <div class="form-group">
+        <label for="contrasena">Contraseña:</label>
+        <input type="password" class="form-control" id="contrasena" name="contrasena" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Iniciar Sesión</button>
+    </form>
+    
+    <!-- Nuevo botón para redirigir al registro -->
+    <div class="text-center mt-3">
+      <p>¿No tienes una cuenta? <a href="/register" class="btn btn-link">Regístrate aquí</a></p>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('loginForm');
+
+      if (loginForm) {
+        loginForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const correoElectronico = document.getElementById('correoElectronico').value;
+          const contrasena = document.getElementById('contrasena').value;
+
+          try {
+            const response = await fetch('http://localhost:3001/api/users/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                correo_electronico: correoElectronico,
+                contrasena
+              })
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              // Guardar el token en localStorage para autenticación
+              localStorage.setItem('token', data.token);
+              alert('Inicio de sesión exitoso');
+              window.location.href = '/dashboard'; // Redireccionar al dashboard
+            } else {
+              const errorText = await response.text();
+              alert('Error: ' + errorText);
+            }
+          } catch (error) {
+            console.error('Error al iniciar sesión:', error);
+            alert('Error al iniciar sesión');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
