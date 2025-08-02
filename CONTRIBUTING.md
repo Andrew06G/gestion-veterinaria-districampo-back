@@ -1,6 +1,6 @@
 # Guía de Contribución
 
-¡Gracias por tu interés en contribuir al proyecto Veterilab Web!
+¡Gracias por tu interés en contribuir al proyecto de Laboratorio Veterinario Integral Web!
 
 ## 🚀 Cómo Contribuir
 
